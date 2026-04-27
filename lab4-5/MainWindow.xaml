@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:conv="clr-namespace:lab4_5.Converters"
+        xmlns:ctrl="clr-namespace:lab4_5.Controls"
         mc:Ignorable="d"
         Title="{DynamicResource AppTitle}"
         MinWidth="720" MinHeight="420"
@@ -22,6 +23,12 @@
                 <MenuItem Header="{DynamicResource MenuLangRu}" Command="{Binding SetLangRuCommand}"/>
                 <MenuItem Header="{DynamicResource MenuLangEn}" Command="{Binding SetLangEnCommand}"/>
             </MenuItem>
+            <MenuItem Header="{DynamicResource MenuTheme}">
+                <MenuItem Header="{DynamicResource ThemeOptimistic}" Command="{Binding SetThemeCommand}" CommandParameter="optimistic"/>
+                <MenuItem Header="{DynamicResource ThemePink}" Command="{Binding SetThemeCommand}" CommandParameter="pink"/>
+                <MenuItem Header="{DynamicResource ThemeGray}" Command="{Binding SetThemeCommand}" CommandParameter="gray"/>
+            </MenuItem>
+            <MenuItem Header="{DynamicResource ProfileTitle}" Command="{Binding OpenProfileCommand}"/>
         </Menu>
         <ToolBar DockPanel.Dock="Top" Band="1">
             <Label Content="{DynamicResource RoleLabel}" VerticalAlignment="Center"/>
@@ -33,9 +40,13 @@
             <Button Content="{DynamicResource BtnAdd}" Command="{Binding AddCommand}"
                     Visibility="{Binding IsAdmin, Converter={StaticResource BoolVis}}"/>
             <Button Content="{DynamicResource BtnSave}" Command="{Binding EditSaveCommand}"
-                    Visibility="{Binding IsAdmin, Converter={StaticResource BoolVis}}"/>
+                    Visibility="{Binding IsAdmin, Converter={StaticResource BoolVis}}"
+                    Style="{StaticResource SaveActionButtonStyle}"/>
             <Button Content="{DynamicResource BtnDelete}" Command="{Binding DeleteCommand}"
                     Visibility="{Binding IsAdmin, Converter={StaticResource BoolVis}}"/>
+            <Separator/>
+            <Button Content="{DynamicResource BtnUndo}" Command="{Binding UndoCommand}"/>
+            <Button Content="{DynamicResource BtnRedo}" Command="{Binding RedoCommand}"/>
         </ToolBar>
         <StatusBar DockPanel.Dock="Bottom">
             <StatusBarItem>
@@ -102,6 +113,7 @@
                     </ListBox>
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <StackPanel>
+                            <ctrl:StockBadge Quantity="{Binding Quantity}"/>
                             <Label Content="{DynamicResource ColShort}"/>
                             <TextBox Text="{Binding ShortName, UpdateSourceTrigger=PropertyChanged}"
                                      IsReadOnly="{Binding DataContext.DetailIsReadOnly, RelativeSource={RelativeSource AncestorType=Window}}"/>

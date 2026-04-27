@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
@@ -20,9 +21,11 @@ public enum UserRole
 
 public class MainViewModel : INotifyPropertyChanged
 {
+    private const int MaxTrackedQuantity = 100;
     private readonly ProductRepository _repo = new();
     private ICollectionView? _itemsView;
     private GuitarProduct? _selectedProduct;
+    private GuitarProduct? _selectedSnapshot;
     private string _searchText = "";
     private string _filterCategory = "";
     private decimal? _priceMin;
@@ -31,15 +34,24 @@ public class MainViewModel : INotifyPropertyChanged
     private string _priceMaxStr = "";
     private bool _onlyInStock;
     private UserRole _role = UserRole.Client;
+    private string _userName = "Student";
+    private string _email = "student@example.com";
+    private string _preferredLanguage = "ru";
+    private string _selectedTheme = "optimistic";
+    private readonly Stack<IUndoableAction> _undoStack = new();
+    private readonly Stack<IUndoableAction> _redoStack = new();
 
     public MainViewModel()
     {
         Products = new ObservableCollection<GuitarProduct>(_repo.Load());
+        foreach (var p in Products)
+            p.PropertyChanged += OnProductPropertyChanged;
         _itemsView = CollectionViewSource.GetDefaultView(Products);
         _itemsView.Filter = FilterProduct;
 
         RebuildCategoryOptions();
         _filterCategory = CategoryOptions.FirstOrDefault() ?? "";
+        ThemeOptions = new ObservableCollection<string> { "optimistic", "pink", "gray" };
 
         AddCommand = new RelayCommand(AddProduct, () => IsAdmin);
         EditSaveCommand = new RelayCommand(SaveCurrent, () => IsAdmin && SelectedProduct != null);
@@ -48,11 +60,17 @@ public class MainViewModel : INotifyPropertyChanged
         ClearFilterCommand = new RelayCommand(ClearFilters);
         SetLangRuCommand = new RelayCommand(() => SetLanguage("ru"));
         SetLangEnCommand = new RelayCommand(() => SetLanguage("en"));
+        SetThemeCommand = new RelayCommand(p => SetThemeByKey(p as string));
+        OpenProfileCommand = new RelayCommand(OpenProfile);
+        UndoCommand = new RelayCommand(Undo, () => _undoStack.Count > 0);
+        RedoCommand = new RelayCommand(Redo, () => _redoStack.Count > 0);
 
         UpdateVisibleCount();
+        ApplyTheme(_selectedTheme);
     }
 
     public ObservableCollection<string> CategoryOptions { get; } = new();
+    public ObservableCollection<string> ThemeOptions { get; }
 
     public ObservableCollection<GuitarProduct> Products { get; }
 
@@ -63,6 +81,7 @@ public class MainViewModel : INotifyPropertyChanged
         {
             if (ReferenceEquals(_selectedProduct, value)) return;
             _selectedProduct = value;
+            _selectedSnapshot = value?.Clone();
             OnPropertyChanged();
             OnPropertyChanged(nameof(DetailIsReadOnly));
             OnPropertyChanged(nameof(CanEditDetail));
@@ -135,6 +154,41 @@ public class MainViewModel : INotifyPropertyChanged
     public bool CanEditDetail => IsAdmin && SelectedProduct != null;
 
     public int VisibleCount { get; private set; }
+    public string UserName
+    {
+        get => _userName;
+        set { _userName = value; OnPropertyChanged(); }
+    }
+
+    public string Email
+    {
+        get => _email;
+        set { _email = value; OnPropertyChanged(); }
+    }
+
+    public string PreferredLanguage
+    {
+        get => _preferredLanguage;
+        set
+        {
+            _preferredLanguage = value;
+            OnPropertyChanged();
+            if (!string.IsNullOrWhiteSpace(value))
+                SetLanguage(value);
+        }
+    }
+
+    public string SelectedTheme
+    {
+        get => _selectedTheme;
+        set
+        {
+            if (_selectedTheme == value) return;
+            _selectedTheme = value;
+            ApplyTheme(value);
+            OnPropertyChanged();
+        }
+    }
 
     public string RoleTitle =>
         IsAdmin
@@ -154,6 +208,10 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand ClearFilterCommand { get; }
     public ICommand SetLangRuCommand { get; }
     public ICommand SetLangEnCommand { get; }
+    public ICommand SetThemeCommand { get; }
+    public ICommand OpenProfileCommand { get; }
+    public ICommand UndoCommand { get; }
+    public ICommand RedoCommand { get; }
     public event Action? LanguageChanged;
 
     private void RebuildCategoryOptions()
@@ -251,6 +309,8 @@ public class MainViewModel : INotifyPropertyChanged
         if (dlg.ShowDialog() == true && dlg.Result is { } np)
         {
             Products.Add(np);
+            np.PropertyChanged += OnProductPropertyChanged;
+            RegisterAction(new AddAction(np, Products));
             _repo.Save(Products);
             SelectedProduct = np;
             RefreshView();
@@ -260,6 +320,9 @@ public class MainViewModel : INotifyPropertyChanged
     private void SaveCurrent()
     {
         if (SelectedProduct == null) return;
+        if (_selectedSnapshot != null)
+            RegisterAction(new EditAction(_selectedSnapshot.Clone(), SelectedProduct.Clone(), Products));
+        _selectedSnapshot = SelectedProduct.Clone();
         _repo.Save(Products);
         MessageBox.Show(
             Application.Current.TryFindResource("MsgSaved") as string ?? "OK",
@@ -271,9 +334,12 @@ public class MainViewModel : INotifyPropertyChanged
     private void DeleteCurrent()
     {
         if (SelectedProduct == null) return;
+        var toDelete = SelectedProduct;
         var msg = Application.Current.TryFindResource("MsgDeleteConfirm") as string ?? "Удалить?";
         if (MessageBox.Show(msg, "", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
-        Products.Remove(SelectedProduct);
+        Products.Remove(toDelete);
+        toDelete.PropertyChanged -= OnProductPropertyChanged;
+        RegisterAction(new DeleteAction(toDelete.Clone(), Products));
         SelectedProduct = null;
         _repo.Save(Products);
         RefreshView();
@@ -285,7 +351,7 @@ public class MainViewModel : INotifyPropertyChanged
         ResourceDictionary? toRemove = null;
         foreach (var d in dicts)
         {
-            if (d.Source != null && d.Source.OriginalString.Contains("/Localization/", StringComparison.OrdinalIgnoreCase))
+            if (d.Source != null && d.Source.OriginalString.Contains("Localization/", StringComparison.OrdinalIgnoreCase))
             {
                 toRemove = d;
                 break;
@@ -296,16 +362,158 @@ public class MainViewModel : INotifyPropertyChanged
             dicts.Remove(toRemove);
 
         var path = culture.Equals("en", StringComparison.OrdinalIgnoreCase)
-            ? "pack://application:,,,/Localization/Strings.en.xaml"
-            : "pack://application:,,,/Localization/Strings.ru.xaml";
+            ? "Localization/Strings.en.xaml"
+            : "Localization/Strings.ru.xaml";
 
-        dicts.Add(new ResourceDictionary { Source = new Uri(path, UriKind.Absolute) });
+        dicts.Add(new ResourceDictionary { Source = new Uri(path, UriKind.Relative) });
+        _preferredLanguage = culture;
+        OnPropertyChanged(nameof(PreferredLanguage));
 
         RebuildCategoryOptions();
         FilterCategory = Application.Current.TryFindResource("CatAll") as string ?? "Все";
         OnPropertyChanged(nameof(RoleTitle));
         RefreshView();
         LanguageChanged?.Invoke();
+    }
+
+    private void SetThemeByKey(string? key)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+            return;
+        SelectedTheme = key;
+    }
+
+    private void OpenProfile()
+    {
+        var profile = new Views.ProfileWindow { Owner = Application.Current.MainWindow, DataContext = this };
+        profile.ShowDialog();
+    }
+
+    private void ApplyTheme(string key)
+    {
+        var dicts = Application.Current.Resources.MergedDictionaries;
+        ResourceDictionary? toRemove = null;
+        foreach (var d in dicts)
+        {
+            if (d.Source != null && d.Source.OriginalString.Contains("Themes/Theme", StringComparison.OrdinalIgnoreCase))
+            {
+                toRemove = d;
+                break;
+            }
+        }
+        if (toRemove != null)
+            dicts.Remove(toRemove);
+
+        var path = key switch
+        {
+            "pink" => "Themes/ThemePink.xaml",
+            "gray" => "Themes/ThemeGray.xaml",
+            _ => "Themes/ThemeOptimistic.xaml"
+        };
+        dicts.Insert(0, new ResourceDictionary { Source = new Uri(path, UriKind.Relative) });
+    }
+
+    private void OnProductPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (sender is not GuitarProduct p || e.PropertyName != nameof(GuitarProduct.Quantity))
+            return;
+
+        if (p.Quantity == 0 || p.Quantity == MaxTrackedQuantity)
+        {
+            var msg = string.Format(
+                Application.Current.TryFindResource("MsgQuantityState") as string ?? "Количество товара \"{0}\": {1}",
+                p.ShortName,
+                p.Quantity);
+            MessageBox.Show(msg, "", MessageBoxButton.OK);
+            LogEvent(msg);
+        }
+    }
+
+    private static void LogEvent(string line)
+    {
+        var logsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs");
+        Directory.CreateDirectory(logsDir);
+        var file = Path.Combine(logsDir, "events.log");
+        File.AppendAllText(file, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {line}{Environment.NewLine}");
+    }
+
+    private void RegisterAction(IUndoableAction action)
+    {
+        _undoStack.Push(action);
+        _redoStack.Clear();
+        CommandManager.InvalidateRequerySuggested();
+    }
+
+    private void Undo()
+    {
+        if (_undoStack.Count == 0) return;
+        var action = _undoStack.Pop();
+        action.Undo();
+        _redoStack.Push(action);
+        _repo.Save(Products);
+        RefreshView();
+        CommandManager.InvalidateRequerySuggested();
+    }
+
+    private void Redo()
+    {
+        if (_redoStack.Count == 0) return;
+        var action = _redoStack.Pop();
+        action.Redo();
+        _undoStack.Push(action);
+        _repo.Save(Products);
+        RefreshView();
+        CommandManager.InvalidateRequerySuggested();
+    }
+
+    private interface IUndoableAction
+    {
+        void Undo();
+        void Redo();
+    }
+
+    private sealed class AddAction(GuitarProduct product, ObservableCollection<GuitarProduct> target) : IUndoableAction
+    {
+        public void Undo() => target.Remove(product);
+        public void Redo() => target.Add(product);
+    }
+
+    private sealed class DeleteAction(GuitarProduct product, ObservableCollection<GuitarProduct> target) : IUndoableAction
+    {
+        public void Undo() => target.Add(product.Clone());
+        public void Redo()
+        {
+            var existing = target.FirstOrDefault(x => x.Id == product.Id);
+            if (existing != null)
+                target.Remove(existing);
+        }
+    }
+
+    private sealed class EditAction(GuitarProduct before, GuitarProduct after, ObservableCollection<GuitarProduct> target) : IUndoableAction
+    {
+        public void Undo() => Apply(before);
+        public void Redo() => Apply(after);
+
+        private void Apply(GuitarProduct source)
+        {
+            var existing = target.FirstOrDefault(x => x.Id == source.Id);
+            if (existing == null) return;
+            existing.ShortName = source.ShortName;
+            existing.FullName = source.FullName;
+            existing.Description = source.Description;
+            existing.ImagePaths = new List<string>(source.ImagePaths);
+            existing.Category = source.Category;
+            existing.Rating = source.Rating;
+            existing.Price = source.Price;
+            existing.Quantity = source.Quantity;
+            existing.Color = source.Color;
+            existing.Size = source.Size;
+            existing.DeliveryCountry = source.DeliveryCountry;
+            existing.DiscountPercent = source.DiscountPercent;
+            existing.IsOutOfStock = source.IsOutOfStock;
+            existing.PurchasedCount = source.PurchasedCount;
+            existing.Manufacturer = source.Manufacturer;
+        }
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

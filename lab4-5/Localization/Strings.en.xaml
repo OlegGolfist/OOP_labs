@@ -8,6 +8,10 @@
     <sys:String x:Key="MenuLang">Language</sys:String>
     <sys:String x:Key="MenuLangRu">Russian</sys:String>
     <sys:String x:Key="MenuLangEn">English</sys:String>
+    <sys:String x:Key="MenuTheme">Theme</sys:String>
+    <sys:String x:Key="ThemeOptimistic">Optimistic</sys:String>
+    <sys:String x:Key="ThemePink">Pink</sys:String>
+    <sys:String x:Key="ThemeGray">Gray shades</sys:String>
     <sys:String x:Key="RoleLabel">Role</sys:String>
     <sys:String x:Key="RoleClient">Customer</sys:String>
     <sys:String x:Key="RoleAdmin">Administrator</sys:String>
@@ -48,5 +52,12 @@
     <sys:String x:Key="WinAddTitle">New product</sys:String>
     <sys:String x:Key="BtnOk">OK</sys:String>
     <sys:String x:Key="BtnCancel">Cancel</sys:String>
+    <sys:String x:Key="BtnClose">Close</sys:String>
+    <sys:String x:Key="BtnUndo">Undo</sys:String>
+    <sys:String x:Key="BtnRedo">Redo</sys:String>
     <sys:String x:Key="MsgNameRequired">Enter short name</sys:String>
+    <sys:String x:Key="ProfileTitle">Profile</sys:String>
+    <sys:String x:Key="ProfileName">Name</sys:String>
+    <sys:String x:Key="ProfileEmail">Email</sys:String>
+    <sys:String x:Key="MsgQuantityState">Product "{0}" quantity: {1}</sys:String>
 </ResourceDictionary>

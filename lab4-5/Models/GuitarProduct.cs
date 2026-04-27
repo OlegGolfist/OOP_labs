@@ -1,44 +1,139 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
 
 namespace lab4_5.Models;
 
-public class GuitarProduct
+public class GuitarProduct : INotifyPropertyChanged
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
-    public string ShortName { get; set; } = "";
-    public string FullName { get; set; } = "";
-    public string Description { get; set; } = "";
+    private string _shortName = "";
+    private string _fullName = "";
+    private string _description = "";
+    private List<string> _imagePaths = new();
+    private string _category = "Электро";
+    private double _rating;
+    private decimal _price;
+    private int _quantity;
+    private string _color = "";
+    private string _size = "";
+    private string _deliveryCountry = "Россия";
+    private decimal _discountPercent;
+    private bool _isOutOfStock;
+    private int _purchasedCount;
+    private string _manufacturer = "";
 
-    public List<string> ImagePaths { get; set; } = new();
+    public string ShortName
+    {
+        get => _shortName;
+        set => SetField(ref _shortName, value);
+    }
+
+    public string FullName
+    {
+        get => _fullName;
+        set => SetField(ref _fullName, value);
+    }
+
+    public string Description
+    {
+        get => _description;
+        set => SetField(ref _description, value);
+    }
+
+    public List<string> ImagePaths
+    {
+        get => _imagePaths;
+        set
+        {
+            if (!SetField(ref _imagePaths, value))
+                return;
+            OnPropertyChanged(nameof(ImagesText));
+        }
+    }
 
     [JsonIgnore]
     public string ImagesText
     {
         get => string.Join(";", ImagePaths);
-        set => ImagePaths = value
-            .Split(new[] { ';', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Select(path => path.Trim().Trim('"'))
-            .Where(path => !string.IsNullOrWhiteSpace(path))
-            .ToList();
+        set
+        {
+            ImagePaths = value
+                .Split(new[] { ';', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(path => path.Trim().Trim('"'))
+                .Where(path => !string.IsNullOrWhiteSpace(path))
+                .ToList();
+            OnPropertyChanged();
+        }
     }
 
-    public string Category { get; set; } = "Электро";
- 
-    public double Rating { get; set; }
+    public string Category
+    {
+        get => _category;
+        set => SetField(ref _category, value);
+    }
 
-    public decimal Price { get; set; }
+    public double Rating
+    {
+        get => _rating;
+        set => SetField(ref _rating, value);
+    }
 
-    public int Quantity { get; set; }
+    public decimal Price
+    {
+        get => _price;
+        set => SetField(ref _price, value);
+    }
 
-    public string Color { get; set; } = "";
-    public string Size { get; set; } = "";
-    public string DeliveryCountry { get; set; } = "Россия";
-    public decimal DiscountPercent { get; set; }
-    public bool IsOutOfStock { get; set; }
-    public int PurchasedCount { get; set; }
-    public string Manufacturer { get; set; } = "";
+    public int Quantity
+    {
+        get => _quantity;
+        set => SetField(ref _quantity, value);
+    }
+
+    public string Color
+    {
+        get => _color;
+        set => SetField(ref _color, value);
+    }
+
+    public string Size
+    {
+        get => _size;
+        set => SetField(ref _size, value);
+    }
+
+    public string DeliveryCountry
+    {
+        get => _deliveryCountry;
+        set => SetField(ref _deliveryCountry, value);
+    }
+
+    public decimal DiscountPercent
+    {
+        get => _discountPercent;
+        set => SetField(ref _discountPercent, value);
+    }
+
+    public bool IsOutOfStock
+    {
+        get => _isOutOfStock;
+        set => SetField(ref _isOutOfStock, value);
+    }
+
+    public int PurchasedCount
+    {
+        get => _purchasedCount;
+        set => SetField(ref _purchasedCount, value);
+    }
+
+    public string Manufacturer
+    {
+        get => _manufacturer;
+        set => SetField(ref _manufacturer, value);
+    }
 
     public GuitarProduct Clone()
     {
@@ -72,4 +167,18 @@ public class GuitarProduct
         "Усилители",
         "Аксессуары"
     };
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    private bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
+    {
+        if (EqualityComparer<T>.Default.Equals(field, value))
+            return false;
+        field = value;
+        OnPropertyChanged(propertyName);
+        return true;
+    }
+
+    private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 }

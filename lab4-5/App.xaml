@@ -5,6 +5,7 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Themes/ThemeOptimistic.xaml"/>
                 <ResourceDictionary Source="Themes/AppStyles.xaml"/>
                 <ResourceDictionary Source="Localization/Strings.ru.xaml"/>
             </ResourceDictionary.MergedDictionaries>

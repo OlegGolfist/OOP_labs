@@ -8,6 +8,10 @@
     <sys:String x:Key="MenuLang">Язык</sys:String>
     <sys:String x:Key="MenuLangRu">Русский</sys:String>
     <sys:String x:Key="MenuLangEn">English</sys:String>
+    <sys:String x:Key="MenuTheme">Тема</sys:String>
+    <sys:String x:Key="ThemeOptimistic">Оптимистичная</sys:String>
+    <sys:String x:Key="ThemePink">Розовая</sys:String>
+    <sys:String x:Key="ThemeGray">Оттенки серого</sys:String>
     <sys:String x:Key="RoleLabel">Роль</sys:String>
     <sys:String x:Key="RoleClient">Клиент</sys:String>
     <sys:String x:Key="RoleAdmin">Администратор</sys:String>
@@ -48,5 +52,12 @@
     <sys:String x:Key="WinAddTitle">Новый товар</sys:String>
     <sys:String x:Key="BtnOk">OK</sys:String>
     <sys:String x:Key="BtnCancel">Отмена</sys:String>
+    <sys:String x:Key="BtnClose">Закрыть</sys:String>
+    <sys:String x:Key="BtnUndo">Отменить</sys:String>
+    <sys:String x:Key="BtnRedo">Вернуть</sys:String>
     <sys:String x:Key="MsgNameRequired">Укажите краткое название</sys:String>
+    <sys:String x:Key="ProfileTitle">Личный кабинет</sys:String>
+    <sys:String x:Key="ProfileName">Имя</sys:String>
+    <sys:String x:Key="ProfileEmail">Email</sys:String>
+    <sys:String x:Key="MsgQuantityState">Количество товара "{0}": {1}</sys:String>
 </ResourceDictionary>

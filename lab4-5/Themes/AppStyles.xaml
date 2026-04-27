@@ -1,9 +1,7 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <SolidColorBrush x:Key="BrushBg" Color="#FFF5F0E8"/>
-    <SolidColorBrush x:Key="BrushPanel" Color="#FFEDE4D8"/>
-    <SolidColorBrush x:Key="BrushAccent" Color="#FF8B4513"/>
-    <SolidColorBrush x:Key="BrushText" Color="#FF2C1810"/>
+    <Thickness x:Key="StdMargin">2</Thickness>
+    <CornerRadius x:Key="PanelRadius">8</CornerRadius>
 
     <Style TargetType="Window">
         <Setter Property="Background" Value="{DynamicResource BrushBg}"/>
@@ -14,18 +12,73 @@
 
     <Style TargetType="Button">
         <Setter Property="Padding" Value="10,4"/>
-        <Setter Property="Margin" Value="2"/>
+        <Setter Property="Margin" Value="{StaticResource StdMargin}"/>
         <Setter Property="MinWidth" Value="72"/>
         <Setter Property="Background" Value="{DynamicResource BrushAccent}"/>
         <Setter Property="Foreground" Value="White"/>
         <Setter Property="BorderBrush" Value="#FF5D2E0C"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="BtnBorder"
+                            CornerRadius="{StaticResource PanelRadius}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            Background="{TemplateBinding Background}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <!-- Нажатие — мгновенное сжатие -->
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="BtnBorder" Property="RenderTransform">
+                                <Setter.Value>
+                                    <ScaleTransform ScaleX="0.98" ScaleY="0.98"/>
+                                </Setter.Value>
+                            </Setter>
+                        </Trigger>
+                        
+                        <!-- Наведение — плавное изменение прозрачности -->
+                        <EventTrigger RoutedEvent="MouseEnter">
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <DoubleAnimation Storyboard.TargetName="BtnBorder"
+                                                    Storyboard.TargetProperty="Opacity"
+                                                    To="0.6" Duration="0:0:0.2"/>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                        
+                        <!-- Уход мыши — возврат прозрачности -->
+                        <EventTrigger RoutedEvent="MouseLeave">
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <DoubleAnimation Storyboard.TargetName="BtnBorder"
+                                                    Storyboard.TargetProperty="Opacity"
+                                                    To="1" Duration="0:0:0.2"/>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <Style TargetType="TextBox">
-        <Setter Property="Margin" Value="0,2,0,4"/>
+        <Setter Property="Margin" Value="0,2,0,6"/>
         <Setter Property="Padding" Value="4,2"/>
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding Quantity}" Value="0">
+                <Setter Property="Background" Value="{DynamicResource BrushDanger}"/>
+                <Setter Property="Foreground" Value="White"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Quantity}" Value="100">
+                <Setter Property="Background" Value="{DynamicResource BrushWarning}"/>
+                <Setter Property="Foreground" Value="Black"/>
+            </DataTrigger>
+        </Style.Triggers>
     </Style>
 
     <Style TargetType="GroupBox">
@@ -34,8 +87,12 @@
     </Style>
 
     <Style TargetType="DataGrid">
-        <Setter Property="AlternatingRowBackground" Value="#FFF0E8DC"/>
-        <Setter Property="RowBackground" Value="White"/>
+        <Setter Property="Background" Value="{DynamicResource BrushGridBackground}"/>
+        <Setter Property="AlternatingRowBackground" Value="{DynamicResource BrushGridAltRow}"/>
+        <Setter Property="RowBackground" Value="{DynamicResource BrushGridRow}"/>
+        <Setter Property="Foreground" Value="{DynamicResource BrushText}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BrushGridBorder}"/>
+        <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="GridLinesVisibility" Value="Horizontal"/>
         <Setter Property="AutoGenerateColumns" Value="False"/>
         <Setter Property="CanUserAddRows" Value="False"/>
@@ -43,8 +100,18 @@
         <Setter Property="SelectionMode" Value="Single"/>
     </Style>
 
+    <Style TargetType="DataGridColumnHeader">
+        <Setter Property="Background" Value="{DynamicResource BrushPanel}"/>
+        <Setter Property="Foreground" Value="{DynamicResource BrushText}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BrushGridBorder}"/>
+    </Style>
+
     <Style TargetType="Menu">
         <Setter Property="Background" Value="{DynamicResource BrushPanel}"/>
+    </Style>
+
+    <Style TargetType="MenuItem">
+        <Setter Property="Padding" Value="8,3"/>
     </Style>
 
     <Style TargetType="ToolBar">
@@ -53,5 +120,44 @@
 
     <Style TargetType="StatusBar">
         <Setter Property="Background" Value="{DynamicResource BrushPanel}"/>
+    </Style>
+
+    <Style TargetType="ComboBox">
+        <Setter Property="Margin" Value="{StaticResource StdMargin}"/>
+        <Setter Property="MinHeight" Value="28"/>
+    </Style>
+
+    <Style TargetType="Label">
+        <Setter Property="Margin" Value="{StaticResource StdMargin}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <Style TargetType="CheckBox">
+        <Setter Property="Margin" Value="{StaticResource StdMargin}"/>
+    </Style>
+
+    <Style TargetType="ListBox">
+        <Setter Property="Margin" Value="{StaticResource StdMargin}"/>
+    </Style>
+
+    <Style TargetType="ScrollViewer">
+        <Setter Property="Margin" Value="{StaticResource StdMargin}"/>
+    </Style>
+
+    <Style TargetType="GridSplitter">
+        <Setter Property="Background" Value="{DynamicResource BrushPanel}"/>
+    </Style>
+
+    <Style x:Key="SaveActionButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+        <Style.Triggers>
+            <MultiTrigger>
+                <MultiTrigger.Conditions>
+                    <Condition Property="IsEnabled" Value="True"/>
+                    <Condition Property="IsMouseOver" Value="True"/>
+                </MultiTrigger.Conditions>
+                <Setter Property="Background" Value="{DynamicResource BrushSuccess}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource BrushSuccess}"/>
+            </MultiTrigger>
+        </Style.Triggers>
     </Style>
 </ResourceDictionary>
