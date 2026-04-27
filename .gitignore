@@ -1,0 +1,9 @@
+# WPF / C# .gitignore
+bin/
+obj/
+.vs/
+*.suo
+*.user
+*.userosscache
+Thumbs.db
+!bin/**/*.json

@@ -1,0 +1,57 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <SolidColorBrush x:Key="BrushBg" Color="#FFF5F0E8"/>
+    <SolidColorBrush x:Key="BrushPanel" Color="#FFEDE4D8"/>
+    <SolidColorBrush x:Key="BrushAccent" Color="#FF8B4513"/>
+    <SolidColorBrush x:Key="BrushText" Color="#FF2C1810"/>
+
+    <Style TargetType="Window">
+        <Setter Property="Background" Value="{DynamicResource BrushBg}"/>
+        <Setter Property="Foreground" Value="{DynamicResource BrushText}"/>
+        <Setter Property="FontFamily" Value="Segoe UI"/>
+        <Setter Property="FontSize" Value="13"/>
+    </Style>
+
+    <Style TargetType="Button">
+        <Setter Property="Padding" Value="10,4"/>
+        <Setter Property="Margin" Value="2"/>
+        <Setter Property="MinWidth" Value="72"/>
+        <Setter Property="Background" Value="{DynamicResource BrushAccent}"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="BorderBrush" Value="#FF5D2E0C"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+
+    <Style TargetType="TextBox">
+        <Setter Property="Margin" Value="0,2,0,4"/>
+        <Setter Property="Padding" Value="4,2"/>
+    </Style>
+
+    <Style TargetType="GroupBox">
+        <Setter Property="Margin" Value="0,4"/>
+        <Setter Property="Padding" Value="8"/>
+    </Style>
+
+    <Style TargetType="DataGrid">
+        <Setter Property="AlternatingRowBackground" Value="#FFF0E8DC"/>
+        <Setter Property="RowBackground" Value="White"/>
+        <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+        <Setter Property="AutoGenerateColumns" Value="False"/>
+        <Setter Property="CanUserAddRows" Value="False"/>
+        <Setter Property="IsReadOnly" Value="True"/>
+        <Setter Property="SelectionMode" Value="Single"/>
+    </Style>
+
+    <Style TargetType="Menu">
+        <Setter Property="Background" Value="{DynamicResource BrushPanel}"/>
+    </Style>
+
+    <Style TargetType="ToolBar">
+        <Setter Property="Background" Value="{DynamicResource BrushPanel}"/>
+    </Style>
+
+    <Style TargetType="StatusBar">
+        <Setter Property="Background" Value="{DynamicResource BrushPanel}"/>
+    </Style>
+</ResourceDictionary>
