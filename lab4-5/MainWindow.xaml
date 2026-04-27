@@ -16,7 +16,7 @@
     </Window.Resources>
     <Window.CommandBindings>
         <CommandBinding Command="ApplicationCommands.Close" Executed="OnCloseExecuted"/>
-    </Window.CommandBindings>
+    </Window.CommandBindings>   
     <DockPanel>
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="{DynamicResource MenuLang}">
@@ -26,7 +26,7 @@
             <MenuItem Header="{DynamicResource MenuTheme}">
                 <MenuItem Header="{DynamicResource ThemeOptimistic}" Command="{Binding SetThemeCommand}" CommandParameter="optimistic"/>
                 <MenuItem Header="{DynamicResource ThemePink}" Command="{Binding SetThemeCommand}" CommandParameter="pink"/>
-                <MenuItem Header="{DynamicResource ThemeGray}" Command="{Binding SetThemeCommand}" CommandParameter="gray"/>
+                <MenuItem Header="{DynamicResource ThemeGray}" Command="{Binding        }" CommandParameter="gray"/>
             </MenuItem>
             <MenuItem Header="{DynamicResource ProfileTitle}" Command="{Binding OpenProfileCommand}"/>
         </Menu>

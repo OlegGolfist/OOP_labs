@@ -217,7 +217,7 @@ public class MainViewModel : INotifyPropertyChanged
     private void RebuildCategoryOptions()
     {
         CategoryOptions.Clear();
-        var all = Application.Current.TryFindResource("CatAll") as string ?? "Р’СЃРµ";
+        var all = Application.Current.TryFindResource("CatAll") as string ?? "Все";
         CategoryOptions.Add(all);
         foreach (var c in GuitarProduct.Categories)
             CategoryOptions.Add(c);
@@ -238,7 +238,7 @@ public class MainViewModel : INotifyPropertyChanged
                 return false;
         }
 
-        var all = Application.Current.TryFindResource("CatAll") as string ?? "Р’СЃРµ";
+        var all = Application.Current.TryFindResource("CatAll") as string ?? "Все";
         if (!string.IsNullOrEmpty(FilterCategory) && FilterCategory != all && p.Category != FilterCategory)
             return false;
 
@@ -272,7 +272,7 @@ public class MainViewModel : INotifyPropertyChanged
     private void ClearFilters()
     {
         SearchText = "";
-        FilterCategory = Application.Current.TryFindResource("CatAll") as string ?? "Р’СЃРµ";
+        FilterCategory = Application.Current.TryFindResource("CatAll") as string ?? "Все";
         PriceMinStr = "";
         PriceMaxStr = "";
         _priceMin = null;
@@ -335,7 +335,7 @@ public class MainViewModel : INotifyPropertyChanged
     {
         if (SelectedProduct == null) return;
         var toDelete = SelectedProduct;
-        var msg = Application.Current.TryFindResource("MsgDeleteConfirm") as string ?? "РЈРґР°Р»РёС‚СЊ?";
+        var msg = Application.Current.TryFindResource("MsgDeleteConfirm") as string ?? "Удалить?";
         if (MessageBox.Show(msg, "", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
         Products.Remove(toDelete);
         toDelete.PropertyChanged -= OnProductPropertyChanged;
@@ -370,7 +370,7 @@ public class MainViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(PreferredLanguage));
 
         RebuildCategoryOptions();
-        FilterCategory = Application.Current.TryFindResource("CatAll") as string ?? "Р’СЃРµ";
+        FilterCategory = Application.Current.TryFindResource("CatAll") as string ?? "Все";
         OnPropertyChanged(nameof(RoleTitle));
         RefreshView();
         LanguageChanged?.Invoke();
@@ -421,7 +421,7 @@ public class MainViewModel : INotifyPropertyChanged
         if (p.Quantity == 0 || p.Quantity == MaxTrackedQuantity)
         {
             var msg = string.Format(
-                Application.Current.TryFindResource("MsgQuantityState") as string ?? "РљРѕР»РёС‡РµСЃС‚РІРѕ С‚РѕРІР°СЂР° \"{0}\": {1}",
+                Application.Current.TryFindResource("MsgQuantityState") as string ?? "Количество товара \"{0}\": {1}",
                 p.ShortName,
                 p.Quantity);
             MessageBox.Show(msg, "", MessageBoxButton.OK);

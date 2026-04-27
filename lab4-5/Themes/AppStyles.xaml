@@ -30,7 +30,6 @@
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                     <ControlTemplate.Triggers>
-                        <!-- Нажатие — мгновенное сжатие -->
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="BtnBorder" Property="RenderTransform">
                                 <Setter.Value>
@@ -38,8 +37,6 @@
                                 </Setter.Value>
                             </Setter>
                         </Trigger>
-                        
-                        <!-- Наведение — плавное изменение прозрачности -->
                         <EventTrigger RoutedEvent="MouseEnter">
                             <BeginStoryboard>
                                 <Storyboard>
@@ -49,8 +46,6 @@
                                 </Storyboard>
                             </BeginStoryboard>
                         </EventTrigger>
-                        
-                        <!-- Уход мыши — возврат прозрачности -->
                         <EventTrigger RoutedEvent="MouseLeave">
                             <BeginStoryboard>
                                 <Storyboard>
@@ -73,10 +68,6 @@
             <DataTrigger Binding="{Binding Quantity}" Value="0">
                 <Setter Property="Background" Value="{DynamicResource BrushDanger}"/>
                 <Setter Property="Foreground" Value="White"/>
-            </DataTrigger>
-            <DataTrigger Binding="{Binding Quantity}" Value="100">
-                <Setter Property="Background" Value="{DynamicResource BrushWarning}"/>
-                <Setter Property="Foreground" Value="Black"/>
             </DataTrigger>
         </Style.Triggers>
     </Style>
