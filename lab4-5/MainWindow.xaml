@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:conv="clr-namespace:lab4_5.Converters"
         xmlns:ctrl="clr-namespace:lab4_5.Controls"
+        xmlns:cmd="clr-namespace:lab4_5.Commands"
         mc:Ignorable="d"
         Title="{DynamicResource AppTitle}"
         MinWidth="720" MinHeight="420"
@@ -16,6 +17,7 @@
     </Window.Resources>
     <Window.CommandBindings>
         <CommandBinding Command="ApplicationCommands.Close" Executed="OnCloseExecuted"/>
+        <CommandBinding Command="{x:Static cmd:ShopCommands.ShowRoutingInfo}" Executed="OnRoutingInfoExecuted"/>
     </Window.CommandBindings>   
     <DockPanel>
         <Menu DockPanel.Dock="Top">
@@ -26,7 +28,10 @@
             <MenuItem Header="{DynamicResource MenuTheme}">
                 <MenuItem Header="{DynamicResource ThemeOptimistic}" Command="{Binding SetThemeCommand}" CommandParameter="optimistic"/>
                 <MenuItem Header="{DynamicResource ThemePink}" Command="{Binding SetThemeCommand}" CommandParameter="pink"/>
-                <MenuItem Header="{DynamicResource ThemeGray}" Command="{Binding        }" CommandParameter="gray"/>
+                <MenuItem Header="{DynamicResource ThemeGray}" Command="{Binding SetThemeCommand}" CommandParameter="gray"/>
+            </MenuItem>
+            <MenuItem Header="{DynamicResource MenuHelp}">
+                <MenuItem Header="{DynamicResource MenuRoutingInfo}" Command="{x:Static cmd:ShopCommands.ShowRoutingInfo}" InputGestureText="F1"/>
             </MenuItem>
             <MenuItem Header="{DynamicResource ProfileTitle}" Command="{Binding OpenProfileCommand}"/>
         </Menu>
@@ -88,7 +93,7 @@
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="{DynamicResource ColShort}" Binding="{Binding ShortName}" Width="*"/>
                         <DataGridTextColumn Header="{DynamicResource ColCategory}" Binding="{Binding Category}" Width="100"/>
-                        <DataGridTextColumn Header="{DynamicResource ColPrice}" Binding="{Binding Price, StringFormat=N0}" Width="90"/>
+                        <DataGridTextColumn Header="{DynamicResource ColPrice}" Binding="{Binding PriceWithDiscount, StringFormat=N0}" Width="90"/>
                         <DataGridTextColumn Header="{DynamicResource ColQty}" Binding="{Binding Quantity}" Width="70"/>
                     </DataGrid.Columns>
                 </DataGrid>
@@ -97,6 +102,8 @@
             <GroupBox Grid.Column="4" Header="{DynamicResource DetailHeader}" Margin="4">
                 <DockPanel DataContext="{Binding SelectedProduct}">
                     <ListBox DockPanel.Dock="Top" Height="100" Margin="0,0,0,8"
+                             VirtualizingStackPanel.VirtualizationMode="Recycling"
+                             ScrollViewer.IsDeferredScrollingEnabled="True"
                              ItemsSource="{Binding ImagePaths}"
                              ScrollViewer.HorizontalScrollBarVisibility="Auto">
                         <ListBox.ItemsPanel>
@@ -112,8 +119,22 @@
                         </ListBox.ItemTemplate>
                     </ListBox>
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <StackPanel>
+                        <StackPanel x:Name="RoutingHost">
                             <ctrl:StockBadge Quantity="{Binding Quantity}"/>
+                            <Border BorderBrush="{DynamicResource BrushGridBorder}" BorderThickness="1" Padding="4" Margin="0,0,0,6">
+                                <StackPanel>
+                                    <TextBlock Text="{DynamicResource RoutingLogHeader}" FontSize="11" FontWeight="SemiBold"/>
+                                    <TextBlock x:Name="RoutingLogText" FontSize="11" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+                            <Label Content="{DynamicResource LblRating}"/>
+                            <ctrl:RatingStarsPicker Rating="{Binding Rating, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                    MaxRating="5"
+                                                    IsEnabled="{Binding DataContext.CanEditDetail, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                            <Label Content="{DynamicResource LblDiscount}"/>
+                            <ctrl:DiscountBarControl DiscountPercent="{Binding DiscountPercent, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                     SnapStep="1" BarHeight="16"
+                                                     IsEnabled="{Binding DataContext.CanEditDetail, RelativeSource={RelativeSource AncestorType=Window}}"/>
                             <Label Content="{DynamicResource ColShort}"/>
                             <TextBox Text="{Binding ShortName, UpdateSourceTrigger=PropertyChanged}"
                                      IsReadOnly="{Binding DataContext.DetailIsReadOnly, RelativeSource={RelativeSource AncestorType=Window}}"/>
@@ -131,17 +152,11 @@
                             <Label Content="{DynamicResource CategoryLabel}"/>
                             <TextBox Text="{Binding Category, UpdateSourceTrigger=PropertyChanged}"
                                      IsReadOnly="{Binding DataContext.DetailIsReadOnly, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            <Label Content="{DynamicResource LblRating}"/>
-                            <TextBox Text="{Binding Rating, UpdateSourceTrigger=PropertyChanged}"
-                                     IsReadOnly="{Binding DataContext.DetailIsReadOnly, RelativeSource={RelativeSource AncestorType=Window}}"/>
                             <Label Content="{DynamicResource ColPrice}"/>
                             <TextBox Text="{Binding Price, UpdateSourceTrigger=PropertyChanged}"
                                      IsReadOnly="{Binding DataContext.DetailIsReadOnly, RelativeSource={RelativeSource AncestorType=Window}}"/>
                             <Label Content="{DynamicResource ColQty}"/>
                             <TextBox Text="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}"
-                                     IsReadOnly="{Binding DataContext.DetailIsReadOnly, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            <Label Content="{DynamicResource LblDiscount}"/>
-                            <TextBox Text="{Binding DiscountPercent, UpdateSourceTrigger=PropertyChanged}"
                                      IsReadOnly="{Binding DataContext.DetailIsReadOnly, RelativeSource={RelativeSource AncestorType=Window}}"/>
                             <Label Content="{DynamicResource LblColor}"/>
                             <TextBox Text="{Binding Color, UpdateSourceTrigger=PropertyChanged}"

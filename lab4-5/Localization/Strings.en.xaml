@@ -9,6 +9,8 @@
     <sys:String x:Key="MenuLangRu">Russian</sys:String>
     <sys:String x:Key="MenuLangEn">English</sys:String>
     <sys:String x:Key="MenuTheme">Theme</sys:String>
+    <sys:String x:Key="MenuHelp">Help</sys:String>
+    <sys:String x:Key="MenuRoutingInfo">Event routing</sys:String>
     <sys:String x:Key="ThemeOptimistic">Optimistic</sys:String>
     <sys:String x:Key="ThemePink">Pink</sys:String>
     <sys:String x:Key="ThemeGray">Gray shades</sys:String>
@@ -60,4 +62,7 @@
     <sys:String x:Key="ProfileName">Name</sys:String>
     <sys:String x:Key="ProfileEmail">Email</sys:String>
     <sys:String x:Key="MsgQuantityState">Product "{0}" quantity: {1}</sys:String>
+    <sys:String x:Key="RoutingLogHeader">Routing log (Tunnel/Bubble)</sys:String>
+    <sys:String x:Key="RoutingInfoTitle">Routed events</sys:String>
+    <sys:String x:Key="RoutingInfoBody">Tunnel: event flows from window down to control. Bubble: from control up to window. Direct: handled only inside source control.</sys:String>
 </ResourceDictionary>

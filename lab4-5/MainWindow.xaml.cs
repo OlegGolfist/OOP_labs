@@ -4,6 +4,8 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using Microsoft.Win32;
 using Cursor = System.Windows.Input.Cursor;
+using lab4_5.Commands;
+using lab4_5.Controls;
 using lab4_5.Models;
 using lab4_5.ViewModels;
 
@@ -11,6 +13,8 @@ namespace lab4_5;
 
 public partial class MainWindow : Window
 {
+    private bool _routingHandlersAttached;
+
     public MainWindow()
     {
         InitializeComponent();
@@ -26,6 +30,7 @@ public partial class MainWindow : Window
         if (File.Exists(curPath))
             Cursor = new Cursor(curPath);
         RefreshGridColumnHeaders();
+        AttachRoutingHandlers();
     }
 
     private void OnCloseExecuted(object sender, ExecutedRoutedEventArgs e) => Close();
@@ -48,6 +53,45 @@ public partial class MainWindow : Window
 
     private string TryGetText(string key, string fallback) =>
         Application.Current.TryFindResource(key) as string ?? fallback;
+
+    private void AttachRoutingHandlers()
+    {
+        if (_routingHandlersAttached || RoutingHost is null)
+            return;
+        _routingHandlersAttached = true;
+
+        AddHandler(RatingStarsPicker.PreviewRatingChangingEvent, new RoutedEventHandler((s, e) => WriteRouting("Window", "Tunnel", e)), false);
+        AddHandler(RatingStarsPicker.RatingChangingEvent, new RoutedEventHandler((s, e) => WriteRouting("Window", "Bubble", e)), false);
+        AddHandler(DiscountBarControl.PreviewDiscountChangingEvent, new RoutedEventHandler((s, e) => WriteRouting("Window", "Tunnel", e)), false);
+        AddHandler(DiscountBarControl.DiscountChangingEvent, new RoutedEventHandler((s, e) => WriteRouting("Window", "Bubble", e)), false);
+
+        RoutingHost.AddHandler(RatingStarsPicker.PreviewRatingChangingEvent, new RoutedEventHandler((s, e) => WriteRouting("Host", "Tunnel", e)), false);
+        RoutingHost.AddHandler(RatingStarsPicker.RatingChangingEvent, new RoutedEventHandler((s, e) => WriteRouting("Host", "Bubble", e)), false);
+        RoutingHost.AddHandler(DiscountBarControl.PreviewDiscountChangingEvent, new RoutedEventHandler((s, e) => WriteRouting("Host", "Tunnel", e)), false);
+        RoutingHost.AddHandler(DiscountBarControl.DiscountChangingEvent, new RoutedEventHandler((s, e) => WriteRouting("Host", "Bubble", e)), false);
+    }
+
+    private void WriteRouting(string place, string strategy, RoutedEventArgs e)
+    {
+        var detail = e switch
+        {
+            ShopDoubleRoutedEventArgs a => $"rating {a.OldValue:0.#}->{a.NewValue:0.#}",
+            ShopDecimalRoutedEventArgs a => $"discount {a.OldValue:0.#}%->{a.NewValue:0.#}%",
+            _ => "event"
+        };
+
+        RoutingLogText.Text = $"{strategy} @ {place}: {detail}";
+    }
+
+    private void OnRoutingInfoExecuted(object sender, ExecutedRoutedEventArgs e)
+    {
+        MessageBox.Show(
+            this,
+            TryGetText("RoutingInfoBody", "Tunnel goes top-down, Bubble bottom-up, Direct only on source control."),
+            TryGetText("RoutingInfoTitle", "Routing info"),
+            MessageBoxButton.OK,
+            MessageBoxImage.Information);
+    }
 
     private void OnPickImageForSelectedProductClick(object sender, RoutedEventArgs e)
     {

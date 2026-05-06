@@ -9,6 +9,8 @@
     <sys:String x:Key="MenuLangRu">Русский</sys:String>
     <sys:String x:Key="MenuLangEn">English</sys:String>
     <sys:String x:Key="MenuTheme">Тема</sys:String>
+    <sys:String x:Key="MenuHelp">Справка</sys:String>
+    <sys:String x:Key="MenuRoutingInfo">Маршрутизация событий</sys:String>
     <sys:String x:Key="ThemeOptimistic">Оптимистичная</sys:String>
     <sys:String x:Key="ThemePink">Розовая</sys:String>
     <sys:String x:Key="ThemeGray">Оттенки серого</sys:String>
@@ -60,4 +62,7 @@
     <sys:String x:Key="ProfileName">Имя</sys:String>
     <sys:String x:Key="ProfileEmail">Email</sys:String>
     <sys:String x:Key="MsgQuantityState">Количество товара "{0}": {1}</sys:String>
+    <sys:String x:Key="RoutingLogHeader">Лог маршрутизации (Tunnel/Bubble)</sys:String>
+    <sys:String x:Key="RoutingInfoTitle">Routed events</sys:String>
+    <sys:String x:Key="RoutingInfoBody">Tunnel: событие идет от окна к контролу. Bubble: от контрола к окну. Direct: обрабатывается только внутри самого контрола.</sys:String>
 </ResourceDictionary>

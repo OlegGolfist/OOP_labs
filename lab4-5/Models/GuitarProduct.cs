@@ -84,7 +84,12 @@ public class GuitarProduct : INotifyPropertyChanged
     public decimal Price
     {
         get => _price;
-        set => SetField(ref _price, value);
+        set
+        {
+            if (!SetField(ref _price, value))
+                return;
+            OnPropertyChanged(nameof(PriceWithDiscount));
+        }
     }
 
     public int Quantity
@@ -114,7 +119,23 @@ public class GuitarProduct : INotifyPropertyChanged
     public decimal DiscountPercent
     {
         get => _discountPercent;
-        set => SetField(ref _discountPercent, value);
+        set
+        {
+            if (!SetField(ref _discountPercent, value))
+                return;
+            OnPropertyChanged(nameof(PriceWithDiscount));
+        }
+    }
+
+    [JsonIgnore]
+    public decimal PriceWithDiscount
+    {
+        get
+        {
+            var discount = Math.Clamp(DiscountPercent, 0m, 100m);
+            var factor = 1m - discount / 100m;
+            return decimal.Round(Price * factor, 2);
+        }
     }
 
     public bool IsOutOfStock
