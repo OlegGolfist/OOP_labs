@@ -1,0 +1,24 @@
+<UserControl x:Class="lab4_5.Controls.StockLevelBarControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Name="Root"
+             MinHeight="44">
+    <StackPanel>
+        <Border Height="{Binding BarHeight, ElementName=Root}"
+                BorderThickness="1"
+                BorderBrush="{DynamicResource BrushGridBorder}"
+                Background="{DynamicResource BrushPanel}"
+                CornerRadius="4">
+            <Grid x:Name="BarHost">
+                <Rectangle x:Name="BarFill"
+                           HorizontalAlignment="Left"
+                           RadiusX="3"
+                           RadiusY="3"
+                           Fill="{DynamicResource BrushAccent}"/>
+            </Grid>
+        </Border>
+        <TextBlock x:Name="ValueText"
+                   Margin="0,4,0,0"
+                   FontSize="11"/>
+    </StackPanel>
+</UserControl>

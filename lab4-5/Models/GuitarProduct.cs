@@ -69,6 +69,10 @@ public class GuitarProduct : INotifyPropertyChanged
         }
     }
 
+    [JsonIgnore]
+    public string PrimaryImagePath =>
+        ImagePaths.FirstOrDefault() ?? "pack://application:,,,/Assets/app.ico";
+
     public string Category
     {
         get => _category;

@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Globalization;
 using System.IO;
@@ -38,6 +39,10 @@ public class MainViewModel : INotifyPropertyChanged
     private string _email = "student@example.com";
     private string _preferredLanguage = "ru";
     private string _selectedTheme = "optimistic";
+    private int _activePageIndex;
+    private string _deliveryAddress = "";
+    private string _selectedPaymentMethod = "РљР°СЂС‚РѕР№";
+    private CartItem? _selectedCartItem;
     private readonly Stack<IUndoableAction> _undoStack = new();
     private readonly Stack<IUndoableAction> _redoStack = new();
 
@@ -46,12 +51,17 @@ public class MainViewModel : INotifyPropertyChanged
         Products = new ObservableCollection<GuitarProduct>(_repo.Load());
         foreach (var p in Products)
             p.PropertyChanged += OnProductPropertyChanged;
+
         _itemsView = CollectionViewSource.GetDefaultView(Products);
         _itemsView.Filter = FilterProduct;
+
+        CartItems = new ObservableCollection<CartItem>();
+        CartItems.CollectionChanged += OnCartCollectionChanged;
 
         RebuildCategoryOptions();
         _filterCategory = CategoryOptions.FirstOrDefault() ?? "";
         ThemeOptions = new ObservableCollection<string> { "optimistic", "pink", "gray" };
+        PaymentMethods = new ObservableCollection<string> { "РљР°СЂС‚РѕР№", "РќР°Р»РёС‡РєРѕР№", };
 
         AddCommand = new RelayCommand(AddProduct, () => IsAdmin);
         EditSaveCommand = new RelayCommand(SaveCurrent, () => IsAdmin && SelectedProduct != null);
@@ -64,15 +74,23 @@ public class MainViewModel : INotifyPropertyChanged
         OpenProfileCommand = new RelayCommand(OpenProfile);
         UndoCommand = new RelayCommand(Undo, () => _undoStack.Count > 0);
         RedoCommand = new RelayCommand(Redo, () => _redoStack.Count > 0);
+        AddToCartCommand = new RelayCommand(AddToCart);
+        RemoveFromCartCommand = new RelayCommand(_ => RemoveSelectedCartItem(), _ => SelectedCartItem != null);
+        OpenCartCommand = new RelayCommand(_ => ActivePageIndex = 1);
+        OpenCatalogCommand = new RelayCommand(_ => ActivePageIndex = 0);
+        CheckoutCommand = new RelayCommand(_ => Checkout());
 
         UpdateVisibleCount();
+        UpdateCartSummary();
         ApplyTheme(_selectedTheme);
     }
 
     public ObservableCollection<string> CategoryOptions { get; } = new();
     public ObservableCollection<string> ThemeOptions { get; }
-
+    public ObservableCollection<string> PaymentMethods { get; }
     public ObservableCollection<GuitarProduct> Products { get; }
+    public ObservableCollection<CartItem> CartItems { get; }
+    public ICollectionView? FilteredProducts => _itemsView;
 
     public GuitarProduct? SelectedProduct
     {
@@ -89,44 +107,16 @@ public class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    public string SearchText
-    {
-        get => _searchText;
-        set { _searchText = value; OnPropertyChanged(); }
-    }
-
-    public string FilterCategory
-    {
-        get => _filterCategory;
-        set { _filterCategory = value; OnPropertyChanged(); }
-    }
-
-    public string PriceMinStr
-    {
-        get => _priceMinStr;
-        set { _priceMinStr = value; OnPropertyChanged(); }
-    }
-
-    public string PriceMaxStr
-    {
-        get => _priceMaxStr;
-        set { _priceMaxStr = value; OnPropertyChanged(); }
-    }
-
-    public bool OnlyInStock
-    {
-        get => _onlyInStock;
-        set { _onlyInStock = value; OnPropertyChanged(); }
-    }
+    public string SearchText { get => _searchText; set { _searchText = value; OnPropertyChanged(); } }
+    public string FilterCategory { get => _filterCategory; set { _filterCategory = value; OnPropertyChanged(); } }
+    public string PriceMinStr { get => _priceMinStr; set { _priceMinStr = value; OnPropertyChanged(); } }
+    public string PriceMaxStr { get => _priceMaxStr; set { _priceMaxStr = value; OnPropertyChanged(); } }
+    public bool OnlyInStock { get => _onlyInStock; set { _onlyInStock = value; OnPropertyChanged(); } }
 
     public int RoleIndex
     {
         get => Role == UserRole.Admin ? 1 : 0;
-        set
-        {
-            var r = value == 1 ? UserRole.Admin : UserRole.Client;
-            Role = r;
-        }
+        set => Role = value == 1 ? UserRole.Admin : UserRole.Client;
     }
 
     public UserRole Role
@@ -148,23 +138,28 @@ public class MainViewModel : INotifyPropertyChanged
     }
 
     public bool IsAdmin => Role == UserRole.Admin;
-
     public bool DetailIsReadOnly => !IsAdmin || SelectedProduct == null;
-
     public bool CanEditDetail => IsAdmin && SelectedProduct != null;
-
     public int VisibleCount { get; private set; }
-    public string UserName
+    public int ActivePageIndex { get => _activePageIndex; set { _activePageIndex = value; OnPropertyChanged(); } }
+    public string DeliveryAddress { get => _deliveryAddress; set { _deliveryAddress = value; OnPropertyChanged(); } }
+    public string SelectedPaymentMethod { get => _selectedPaymentMethod; set { _selectedPaymentMethod = value; OnPropertyChanged(); } }
+
+    public CartItem? SelectedCartItem
     {
-        get => _userName;
-        set { _userName = value; OnPropertyChanged(); }
+        get => _selectedCartItem;
+        set
+        {
+            _selectedCartItem = value;
+            OnPropertyChanged();
+            CommandManager.InvalidateRequerySuggested();
+        }
     }
 
-    public string Email
-    {
-        get => _email;
-        set { _email = value; OnPropertyChanged(); }
-    }
+    public int CartItemsCount => CartItems.Sum(x => x.Quantity);
+    public decimal CartTotal => CartItems.Sum(x => x.LineTotal);
+    public string UserName { get => _userName; set { _userName = value; OnPropertyChanged(); } }
+    public string Email { get => _email; set { _email = value; OnPropertyChanged(); } }
 
     public string PreferredLanguage
     {
@@ -191,15 +186,15 @@ public class MainViewModel : INotifyPropertyChanged
     }
 
     public string RoleTitle =>
-        IsAdmin
-            ? Application.Current.TryFindResource("RoleAdmin") as string ?? "Admin"
-            : Application.Current.TryFindResource("RoleClient") as string ?? "Client";
+        IsAdmin ? Application.Current.TryFindResource("RoleAdmin") as string ?? "Admin"
+                : Application.Current.TryFindResource("RoleClient") as string ?? "Client";
 
     public string StatusSummary =>
         string.Format(
-            Application.Current.TryFindResource("StatusTpl") as string ?? "{0} | {1}",
+            Application.Current.TryFindResource("StatusTplCart") as string ?? "{0} | {1} | Cart: {2}",
             VisibleCount,
-            RoleTitle);
+            RoleTitle,
+            CartItemsCount);
 
     public ICommand AddCommand { get; }
     public ICommand EditSaveCommand { get; }
@@ -212,12 +207,17 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand OpenProfileCommand { get; }
     public ICommand UndoCommand { get; }
     public ICommand RedoCommand { get; }
+    public ICommand AddToCartCommand { get; }
+    public ICommand RemoveFromCartCommand { get; }
+    public ICommand OpenCartCommand { get; }
+    public ICommand OpenCatalogCommand { get; }
+    public ICommand CheckoutCommand { get; }
     public event Action? LanguageChanged;
 
     private void RebuildCategoryOptions()
     {
         CategoryOptions.Clear();
-        var all = Application.Current.TryFindResource("CatAll") as string ?? "Все";
+        var all = Application.Current.TryFindResource("CatAll") as string ?? "All";
         CategoryOptions.Add(all);
         foreach (var c in GuitarProduct.Categories)
             CategoryOptions.Add(c);
@@ -227,7 +227,6 @@ public class MainViewModel : INotifyPropertyChanged
     private bool FilterProduct(object obj)
     {
         if (obj is not GuitarProduct p) return false;
-
         if (!string.IsNullOrWhiteSpace(SearchText))
         {
             var q = SearchText.Trim();
@@ -237,42 +236,26 @@ public class MainViewModel : INotifyPropertyChanged
                 !p.Manufacturer.Contains(q, StringComparison.OrdinalIgnoreCase))
                 return false;
         }
-
-        var all = Application.Current.TryFindResource("CatAll") as string ?? "Все";
+        var all = Application.Current.TryFindResource("CatAll") as string ?? "All";
         if (!string.IsNullOrEmpty(FilterCategory) && FilterCategory != all && p.Category != FilterCategory)
             return false;
-
         if (_priceMin is decimal min && p.Price < min) return false;
         if (_priceMax is decimal max && p.Price > max) return false;
-
         if (OnlyInStock && (p.IsOutOfStock || p.Quantity <= 0)) return false;
-
         return true;
     }
 
     private void ApplyFilters()
     {
-        _priceMin = decimal.TryParse(
-            PriceMinStr.Replace(',', '.'),
-            NumberStyles.Any,
-            CultureInfo.InvariantCulture,
-            out var a)
-            ? a
-            : null;
-        _priceMax = decimal.TryParse(
-            PriceMaxStr.Replace(',', '.'),
-            NumberStyles.Any,
-            CultureInfo.InvariantCulture,
-            out var b)
-            ? b
-            : null;
+        _priceMin = decimal.TryParse(PriceMinStr.Replace(',', '.'), NumberStyles.Any, CultureInfo.InvariantCulture, out var a) ? a : null;
+        _priceMax = decimal.TryParse(PriceMaxStr.Replace(',', '.'), NumberStyles.Any, CultureInfo.InvariantCulture, out var b) ? b : null;
         RefreshView();
     }
 
     private void ClearFilters()
     {
         SearchText = "";
-        FilterCategory = Application.Current.TryFindResource("CatAll") as string ?? "Все";
+        FilterCategory = Application.Current.TryFindResource("CatAll") as string ?? "All";
         PriceMinStr = "";
         PriceMaxStr = "";
         _priceMin = null;
@@ -286,19 +269,12 @@ public class MainViewModel : INotifyPropertyChanged
         _itemsView?.Refresh();
         UpdateVisibleCount();
         OnPropertyChanged(nameof(StatusSummary));
+        OnPropertyChanged(nameof(FilteredProducts));
     }
 
     private void UpdateVisibleCount()
     {
-        if (_itemsView == null)
-        {
-            VisibleCount = Products.Count;
-        }
-        else
-        {
-            VisibleCount = _itemsView.Cast<object>().Count();
-        }
-
+        VisibleCount = _itemsView?.Cast<object>().Count() ?? Products.Count;
         OnPropertyChanged(nameof(VisibleCount));
         OnPropertyChanged(nameof(StatusSummary));
     }
@@ -324,10 +300,7 @@ public class MainViewModel : INotifyPropertyChanged
             RegisterAction(new EditAction(_selectedSnapshot.Clone(), SelectedProduct.Clone(), Products));
         _selectedSnapshot = SelectedProduct.Clone();
         _repo.Save(Products);
-        MessageBox.Show(
-            Application.Current.TryFindResource("MsgSaved") as string ?? "OK",
-            "",
-            MessageBoxButton.OK);
+        MessageBox.Show(Application.Current.TryFindResource("MsgSaved") as string ?? "OK", "", MessageBoxButton.OK);
         RefreshView();
     }
 
@@ -335,7 +308,7 @@ public class MainViewModel : INotifyPropertyChanged
     {
         if (SelectedProduct == null) return;
         var toDelete = SelectedProduct;
-        var msg = Application.Current.TryFindResource("MsgDeleteConfirm") as string ?? "Удалить?";
+        var msg = Application.Current.TryFindResource("MsgDeleteConfirm") as string ?? "Delete?";
         if (MessageBox.Show(msg, "", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
         Products.Remove(toDelete);
         toDelete.PropertyChanged -= OnProductPropertyChanged;
@@ -343,6 +316,81 @@ public class MainViewModel : INotifyPropertyChanged
         SelectedProduct = null;
         _repo.Save(Products);
         RefreshView();
+    }
+
+    private void AddToCart(object? parameter)
+    {
+        var product = parameter as GuitarProduct ?? SelectedProduct;
+        if (product == null)
+            return;
+        if (product.Quantity <= 0)
+        {
+            MessageBox.Show(Application.Current.TryFindResource("MsgOutOfStock") as string ?? "Out of stock.", "", MessageBoxButton.OK);
+            return;
+        }
+        var existing = CartItems.FirstOrDefault(x => x.Product.Id == product.Id);
+        if (existing != null)
+        {
+            if (existing.Quantity >= product.Quantity)
+            {
+                MessageBox.Show(Application.Current.TryFindResource("MsgCannotAddMoreStock") as string ?? "Cannot add more than available stock.", "", MessageBoxButton.OK);
+                return;
+            }
+            existing.Quantity++;
+            return;
+        }
+        var item = new CartItem { Product = product, Quantity = 1 };
+        item.PropertyChanged += OnCartItemChanged;
+        CartItems.Add(item);
+    }
+
+    private void RemoveSelectedCartItem()
+    {
+        if (SelectedCartItem == null)
+            return;
+        SelectedCartItem.PropertyChanged -= OnCartItemChanged;
+        CartItems.Remove(SelectedCartItem);
+    }
+
+    private void Checkout()
+    {
+        if (CartItems.Count == 0)
+        {
+            MessageBox.Show(Application.Current.TryFindResource("MsgCartEmpty") as string ?? "Cart is empty.", "", MessageBoxButton.OK);
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(DeliveryAddress))
+        {
+            MessageBox.Show(Application.Current.TryFindResource("MsgEnterDeliveryAddress") as string ?? "Enter delivery address.", "", MessageBoxButton.OK);
+            return;
+        }
+        foreach (var item in CartItems)
+        {
+            if (item.Product.Quantity < item.Quantity)
+            {
+                MessageBox.Show(
+                    string.Format(
+                        Application.Current.TryFindResource("MsgInsufficientStock") as string ?? "Insufficient stock: {0}",
+                        item.Product.ShortName),
+                    "",
+                    MessageBoxButton.OK);
+                return;
+            }
+        }
+        foreach (var item in CartItems.ToList())
+        {
+            item.Product.Quantity -= item.Quantity;
+            item.Product.PurchasedCount += item.Quantity;
+            item.Product.IsOutOfStock = item.Product.Quantity <= 0;
+            item.PropertyChanged -= OnCartItemChanged;
+        }
+        CartItems.Clear();
+        DeliveryAddress = "";
+        _repo.Save(Products);
+        RefreshView();
+        UpdateCartSummary();
+        ActivePageIndex = 0;
+        MessageBox.Show(Application.Current.TryFindResource("MsgOrderPlaced") as string ?? "Order placed.", "", MessageBoxButton.OK);
     }
 
     private void SetLanguage(string culture)
@@ -357,20 +405,15 @@ public class MainViewModel : INotifyPropertyChanged
                 break;
             }
         }
-
         if (toRemove != null)
             dicts.Remove(toRemove);
 
-        var path = culture.Equals("en", StringComparison.OrdinalIgnoreCase)
-            ? "Localization/Strings.en.xaml"
-            : "Localization/Strings.ru.xaml";
-
+        var path = culture.Equals("en", StringComparison.OrdinalIgnoreCase) ? "Localization/Strings.en.xaml" : "Localization/Strings.ru.xaml";
         dicts.Add(new ResourceDictionary { Source = new Uri(path, UriKind.Relative) });
         _preferredLanguage = culture;
         OnPropertyChanged(nameof(PreferredLanguage));
-
         RebuildCategoryOptions();
-        FilterCategory = Application.Current.TryFindResource("CatAll") as string ?? "Все";
+        FilterCategory = Application.Current.TryFindResource("CatAll") as string ?? "All";
         OnPropertyChanged(nameof(RoleTitle));
         RefreshView();
         LanguageChanged?.Invoke();
@@ -378,14 +421,13 @@ public class MainViewModel : INotifyPropertyChanged
 
     private void SetThemeByKey(string? key)
     {
-        if (string.IsNullOrWhiteSpace(key))
-            return;
-        SelectedTheme = key;
+        if (!string.IsNullOrWhiteSpace(key))
+            SelectedTheme = key;
     }
 
     private void OpenProfile()
     {
-        var profile = new Views.ProfileWindow { Owner = Application.Current.MainWindow, DataContext = this };
+        var profile = new ProfileWindow { Owner = Application.Current.MainWindow, DataContext = this };
         profile.ShowDialog();
     }
 
@@ -403,7 +445,6 @@ public class MainViewModel : INotifyPropertyChanged
         }
         if (toRemove != null)
             dicts.Remove(toRemove);
-
         var path = key switch
         {
             "pink" => "Themes/ThemePink.xaml",
@@ -421,12 +462,36 @@ public class MainViewModel : INotifyPropertyChanged
         if (p.Quantity == 0 || p.Quantity == MaxTrackedQuantity)
         {
             var msg = string.Format(
-                Application.Current.TryFindResource("MsgQuantityState") as string ?? "Количество товара \"{0}\": {1}",
+                Application.Current.TryFindResource("MsgQuantityState") as string ?? "Product quantity \"{0}\": {1}",
                 p.ShortName,
                 p.Quantity);
             MessageBox.Show(msg, "", MessageBoxButton.OK);
             LogEvent(msg);
         }
+
+        p.IsOutOfStock = p.Quantity <= 0;
+        foreach (var item in CartItems.Where(x => x.Product.Id == p.Id))
+        {
+            if (item.Quantity > p.Quantity)
+                item.Quantity = Math.Max(1, p.Quantity);
+        }
+        UpdateCartSummary();
+    }
+
+    private void OnCartCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) => UpdateCartSummary();
+
+    private void OnCartItemChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(CartItem.Quantity) || e.PropertyName == nameof(CartItem.LineTotal))
+            UpdateCartSummary();
+    }
+
+    private void UpdateCartSummary()
+    {
+        OnPropertyChanged(nameof(CartItemsCount));
+        OnPropertyChanged(nameof(CartTotal));
+        OnPropertyChanged(nameof(StatusSummary));
+        CommandManager.InvalidateRequerySuggested();
     }
 
     private static void LogEvent(string line)
@@ -466,11 +531,7 @@ public class MainViewModel : INotifyPropertyChanged
         CommandManager.InvalidateRequerySuggested();
     }
 
-    private interface IUndoableAction
-    {
-        void Undo();
-        void Redo();
-    }
+    private interface IUndoableAction { void Undo(); void Redo(); }
 
     private sealed class AddAction(GuitarProduct product, ObservableCollection<GuitarProduct> target) : IUndoableAction
     {

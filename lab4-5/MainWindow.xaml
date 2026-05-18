@@ -3,13 +3,15 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:conv="clr-namespace:lab4_5.Converters"
         xmlns:ctrl="clr-namespace:lab4_5.Controls"
+        xmlns:conv="clr-namespace:lab4_5.Converters"
         xmlns:cmd="clr-namespace:lab4_5.Commands"
         mc:Ignorable="d"
         Title="{DynamicResource AppTitle}"
-        MinWidth="720" MinHeight="420"
-        Height="600" Width="1100"
+        MinWidth="880"
+        MinHeight="520"
+        Height="680"
+        Width="1180"
         Icon="pack://application:,,,/Assets/app.ico">
     <Window.Resources>
         <conv:UriToImageConverter x:Key="UriToImg"/>
@@ -18,7 +20,8 @@
     <Window.CommandBindings>
         <CommandBinding Command="ApplicationCommands.Close" Executed="OnCloseExecuted"/>
         <CommandBinding Command="{x:Static cmd:ShopCommands.ShowRoutingInfo}" Executed="OnRoutingInfoExecuted"/>
-    </Window.CommandBindings>   
+    </Window.CommandBindings>
+
     <DockPanel>
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="{DynamicResource MenuLang}">
@@ -35,150 +38,169 @@
             </MenuItem>
             <MenuItem Header="{DynamicResource ProfileTitle}" Command="{Binding OpenProfileCommand}"/>
         </Menu>
-        <ToolBar DockPanel.Dock="Top" Band="1">
+
+        <ToolBar DockPanel.Dock="Top">
             <Label Content="{DynamicResource RoleLabel}" VerticalAlignment="Center"/>
             <ComboBox Width="160" SelectedIndex="{Binding RoleIndex, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
                 <ComboBoxItem Content="{DynamicResource RoleClient}"/>
                 <ComboBoxItem Content="{DynamicResource RoleAdmin}"/>
             </ComboBox>
             <Separator/>
-            <Button Content="{DynamicResource BtnAdd}" Command="{Binding AddCommand}"
-                    Visibility="{Binding IsAdmin, Converter={StaticResource BoolVis}}"/>
-            <Button Content="{DynamicResource BtnSave}" Command="{Binding EditSaveCommand}"
-                    Visibility="{Binding IsAdmin, Converter={StaticResource BoolVis}}"
-                    Style="{StaticResource SaveActionButtonStyle}"/>
-            <Button Content="{DynamicResource BtnDelete}" Command="{Binding DeleteCommand}"
-                    Visibility="{Binding IsAdmin, Converter={StaticResource BoolVis}}"/>
+            <Button Content="{DynamicResource BtnAdd}" Command="{Binding AddCommand}" />
+            <Button Content="{DynamicResource BtnSave}" Command="{Binding EditSaveCommand}" Style="{StaticResource SaveActionButtonStyle}" />
+            <Button Content="{DynamicResource BtnDelete}" Command="{Binding DeleteCommand}" />
             <Separator/>
             <Button Content="{DynamicResource BtnUndo}" Command="{Binding UndoCommand}"/>
             <Button Content="{DynamicResource BtnRedo}" Command="{Binding RedoCommand}"/>
+            <Separator/>
+            <Button Content="{DynamicResource BtnOpenCatalog}" Command="{Binding OpenCatalogCommand}"/>
+            <Button Content="{DynamicResource BtnOpenCart}" Command="{Binding OpenCartCommand}"/>
         </ToolBar>
+
         <StatusBar DockPanel.Dock="Bottom">
             <StatusBarItem>
                 <TextBlock Text="{Binding StatusSummary}"/>
             </StatusBarItem>
         </StatusBar>
-        <Grid>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="220" MinWidth="180"/>
-                <ColumnDefinition Width="6"/>
-                <ColumnDefinition Width="*" MinWidth="200"/>
-                <ColumnDefinition Width="6"/>
-                <ColumnDefinition Width="320" MinWidth="260"/>
-            </Grid.ColumnDefinitions>
-            <GroupBox Grid.Column="0" Header="{DynamicResource FilterHeader}" Margin="4">
-                <DockPanel LastChildFill="True">
-                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Stretch" Margin="0,8,0,0">
-                        <Button Content="{DynamicResource BtnApply}" Command="{Binding ApplyFilterCommand}" HorizontalAlignment="Stretch" MinWidth="0"/>
-                        <Button Content="{DynamicResource BtnClear}" Command="{Binding ClearFilterCommand}" HorizontalAlignment="Stretch" MinWidth="0"/>
-                    </StackPanel>
-                    <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <StackPanel>
-                            <Label Content="{DynamicResource SearchLabel}"/>
-                            <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"/>
-                            <Label Content="{DynamicResource CategoryLabel}"/>
-                            <ComboBox ItemsSource="{Binding CategoryOptions}" SelectedItem="{Binding FilterCategory, Mode=TwoWay}"/>
-                            <Label Content="{DynamicResource PriceFrom}"/>
-                            <TextBox Text="{Binding PriceMinStr, UpdateSourceTrigger=PropertyChanged}"/>
-                            <Label Content="{DynamicResource PriceTo}"/>
-                            <TextBox Text="{Binding PriceMaxStr, UpdateSourceTrigger=PropertyChanged}"/>
-                            <CheckBox Content="{DynamicResource OnlyInStock}" IsChecked="{Binding OnlyInStock, Mode=TwoWay}" Margin="0,8,0,0"/>
-                        </StackPanel>
-                    </ScrollViewer>
-                </DockPanel>
-            </GroupBox>
-            <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" Background="{DynamicResource BrushPanel}"/>
-            <GroupBox Grid.Column="2" Header="{DynamicResource ListHeader}" Margin="4">
-                <DataGrid x:Name="ProductsGrid" ItemsSource="{Binding Products}" SelectedItem="{Binding SelectedProduct, Mode=TwoWay}">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="{DynamicResource ColShort}" Binding="{Binding ShortName}" Width="*"/>
-                        <DataGridTextColumn Header="{DynamicResource ColCategory}" Binding="{Binding Category}" Width="100"/>
-                        <DataGridTextColumn Header="{DynamicResource ColPrice}" Binding="{Binding PriceWithDiscount, StringFormat=N0}" Width="90"/>
-                        <DataGridTextColumn Header="{DynamicResource ColQty}" Binding="{Binding Quantity}" Width="70"/>
-                    </DataGrid.Columns>
-                </DataGrid>
-            </GroupBox>
-            <GridSplitter Grid.Column="3" Width="6" HorizontalAlignment="Stretch" Background="{DynamicResource BrushPanel}"/>
-            <GroupBox Grid.Column="4" Header="{DynamicResource DetailHeader}" Margin="4">
-                <DockPanel DataContext="{Binding SelectedProduct}">
-                    <ListBox DockPanel.Dock="Top" Height="100" Margin="0,0,0,8"
-                             VirtualizingStackPanel.VirtualizationMode="Recycling"
-                             ScrollViewer.IsDeferredScrollingEnabled="True"
-                             ItemsSource="{Binding ImagePaths}"
-                             ScrollViewer.HorizontalScrollBarVisibility="Auto">
+
+        <TabControl SelectedIndex="{Binding ActivePageIndex, Mode=TwoWay}">
+            <TabItem Header="{DynamicResource TabCatalog}">
+                <Grid Margin="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="240"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <GroupBox Grid.Column="0" Header="{DynamicResource FilterHeader}" Margin="0,0,8,0">
+                        <DockPanel LastChildFill="True">
+                            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
+                                <Button Content="{DynamicResource BtnApply}" Command="{Binding ApplyFilterCommand}" />
+                                <Button Content="{DynamicResource BtnClear}" Command="{Binding ClearFilterCommand}" />
+                            </StackPanel>
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <StackPanel>
+                                    <Label Content="{DynamicResource SearchLabel}"/>
+                                    <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <Label Content="{DynamicResource CategoryLabel}"/>
+                                    <ComboBox ItemsSource="{Binding CategoryOptions}" SelectedItem="{Binding FilterCategory, Mode=TwoWay}"/>
+                                    <Label Content="{DynamicResource PriceFrom}"/>
+                                    <TextBox Text="{Binding PriceMinStr, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <Label Content="{DynamicResource PriceTo}"/>
+                                    <TextBox Text="{Binding PriceMaxStr, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <CheckBox Content="{DynamicResource OnlyInStock}" IsChecked="{Binding OnlyInStock, Mode=TwoWay}" Margin="0,8,0,0"/>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </DockPanel>
+                    </GroupBox>
+
+                    <ListBox Grid.Column="1"
+                             BorderThickness="0"
+                             Background="Transparent"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                             ItemsSource="{Binding FilteredProducts}"
+                             SelectedItem="{Binding SelectedProduct, Mode=TwoWay}">
                         <ListBox.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <StackPanel Orientation="Horizontal"/>
+                                <WrapPanel/>
                             </ItemsPanelTemplate>
                         </ListBox.ItemsPanel>
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <Image Width="88" Height="88" Stretch="Uniform"
-                                       Source="{Binding Converter={StaticResource UriToImg}}"/>
+                                <Border Width="255"
+                                        x:Name="ProductCardBorder"
+                                        Margin="0,0,10,10"
+                                        Padding="10"
+                                        BorderBrush="{DynamicResource BrushGridBorder}"
+                                        BorderThickness="1"
+                                        Background="{DynamicResource BrushPanel}"
+                                        CornerRadius="8"
+                                        Loaded="OnProductCardLoaded"
+                                        MouseLeftButtonUp="OnProductCardClick">
+                                    <StackPanel>
+                                        <Image Height="200"
+                                            Width="255"
+                                            Stretch="Uniform"
+                                            Margin="0,0,0,8"
+                                            Source="{Binding PrimaryImagePath, Converter={StaticResource UriToImg}}"/>
+                                        <TextBlock Text="{Binding ShortName}" FontWeight="Bold" FontSize="14"/>
+                                        <TextBlock Text="{Binding Category}" Margin="0,3,0,0"/>
+                                        <TextBlock Margin="0,8,0,0" FontWeight="SemiBold" Text="{Binding PriceWithDiscount, StringFormat={}{0:N2}}"/>
+                                        <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                            <TextBlock Text="{DynamicResource ProductInStockLabel}"/>
+                                            <TextBlock Text="{Binding Quantity}"/>
+                                        </StackPanel>
+                                        <ctrl:StockLevelBarControl Value="{Binding Quantity}" Maximum="100" BarHeight="12" Margin="0,6,0,0"/>
+                                        <Button Content="{DynamicResource BtnAddToCart}"
+                                                Margin="0,10,0,0"
+                                                HorizontalAlignment="Left"
+                                                Tag="{Binding}"
+                                                Click="OnAddToCartClick"/>
+                                        <Button Content="{DynamicResource BtnAddImageToCard}"
+                                                Margin="0,6,0,0"
+                                                HorizontalAlignment="Left"
+                                                Visibility="{Binding DataContext.IsAdmin, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolVis}}"
+                                                Tag="{Binding}"
+                                                Click="OnAddImageToProductClick"/>
+                                    </StackPanel>
+                                </Border>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
-                    <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <StackPanel x:Name="RoutingHost">
-                            <ctrl:StockBadge Quantity="{Binding Quantity}"/>
-                            <Border BorderBrush="{DynamicResource BrushGridBorder}" BorderThickness="1" Padding="4" Margin="0,0,0,6">
-                                <StackPanel>
-                                    <TextBlock Text="{DynamicResource RoutingLogHeader}" FontSize="11" FontWeight="SemiBold"/>
-                                    <TextBlock x:Name="RoutingLogText" FontSize="11" TextWrapping="Wrap"/>
-                                </StackPanel>
-                            </Border>
-                            <Label Content="{DynamicResource LblRating}"/>
-                            <ctrl:RatingStarsPicker Rating="{Binding Rating, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                    MaxRating="5"
-                                                    IsEnabled="{Binding DataContext.CanEditDetail, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            <Label Content="{DynamicResource LblDiscount}"/>
-                            <ctrl:DiscountBarControl DiscountPercent="{Binding DiscountPercent, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                     SnapStep="1" BarHeight="16"
-                                                     IsEnabled="{Binding DataContext.CanEditDetail, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            <Label Content="{DynamicResource ColShort}"/>
-                            <TextBox Text="{Binding ShortName, UpdateSourceTrigger=PropertyChanged}"
-                                     IsReadOnly="{Binding DataContext.DetailIsReadOnly, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            <Label Content="{DynamicResource LblFull}"/>
-                            <TextBox Text="{Binding FullName, UpdateSourceTrigger=PropertyChanged}"
-                                     IsReadOnly="{Binding DataContext.DetailIsReadOnly, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            <Label Content="{DynamicResource LblDesc}"/>
-                            <TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" AcceptsReturn="True" Height="56"
-                                     IsReadOnly="{Binding DataContext.DetailIsReadOnly, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            <Label Content="{DynamicResource LblImages}"/>
-                            <TextBox x:Name="TbImagesMain" Text="{Binding ImagesText, UpdateSourceTrigger=PropertyChanged}"
-                                     IsReadOnly="{Binding DataContext.DetailIsReadOnly, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            <Button Content="{DynamicResource BtnPickImage}" Click="OnPickImageForSelectedProductClick"
-                                    IsEnabled="{Binding DataContext.CanEditDetail, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            <Label Content="{DynamicResource CategoryLabel}"/>
-                            <TextBox Text="{Binding Category, UpdateSourceTrigger=PropertyChanged}"
-                                     IsReadOnly="{Binding DataContext.DetailIsReadOnly, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            <Label Content="{DynamicResource ColPrice}"/>
-                            <TextBox Text="{Binding Price, UpdateSourceTrigger=PropertyChanged}"
-                                     IsReadOnly="{Binding DataContext.DetailIsReadOnly, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            <Label Content="{DynamicResource ColQty}"/>
-                            <TextBox Text="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}"
-                                     IsReadOnly="{Binding DataContext.DetailIsReadOnly, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            <Label Content="{DynamicResource LblColor}"/>
-                            <TextBox Text="{Binding Color, UpdateSourceTrigger=PropertyChanged}"
-                                     IsReadOnly="{Binding DataContext.DetailIsReadOnly, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            <Label Content="{DynamicResource LblSize}"/>
-                            <TextBox Text="{Binding Size, UpdateSourceTrigger=PropertyChanged}"
-                                     IsReadOnly="{Binding DataContext.DetailIsReadOnly, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            <Label Content="{DynamicResource LblCountry}"/>
-                            <TextBox Text="{Binding DeliveryCountry, UpdateSourceTrigger=PropertyChanged}"
-                                     IsReadOnly="{Binding DataContext.DetailIsReadOnly, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            <Label Content="{DynamicResource LblMaker}"/>
-                            <TextBox Text="{Binding Manufacturer, UpdateSourceTrigger=PropertyChanged}"
-                                     IsReadOnly="{Binding DataContext.DetailIsReadOnly, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            <Label Content="{DynamicResource LblBought}"/>
-                            <TextBox Text="{Binding PurchasedCount, UpdateSourceTrigger=PropertyChanged}"
-                                     IsReadOnly="{Binding DataContext.DetailIsReadOnly, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            <CheckBox Content="{DynamicResource LblOut}" IsChecked="{Binding IsOutOfStock, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                      IsEnabled="{Binding DataContext.CanEditDetail, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="{DynamicResource TabCart}">
+                <Grid Margin="8">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <DataGrid Grid.Row="0"
+                              Margin="0,0,0,8"
+                              ItemsSource="{Binding CartItems}"
+                              SelectedItem="{Binding SelectedCartItem, Mode=TwoWay}"
+                              AutoGenerateColumns="False"
+                              RowHeight="36">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="{DynamicResource CartColProduct}" Binding="{Binding Product.ShortName}" Width="*"/>
+                            <DataGridTextColumn Header="{DynamicResource CartColPrice}" Binding="{Binding Product.PriceWithDiscount, StringFormat=N2}" Width="60"/>
+                            <DataGridTemplateColumn Header="{DynamicResource CartColQty}" Width="100">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ctrl:QuantityStepperControl Count="{Binding Quantity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                     MinCount="1"
+                                                                     MaxCount="{Binding MaxQuantity}"
+                                                                     Step="1"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="{DynamicResource CartColTotal}" Binding="{Binding LineTotal, StringFormat=N2}" Width="120"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <Border Grid.Row="1" Padding="10" BorderBrush="{DynamicResource BrushGridBorder}" BorderThickness="1" CornerRadius="8">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{DynamicResource CartItemsCountLabel}" FontWeight="SemiBold"/>
+                                <TextBlock Text="{Binding CartItemsCount}" FontWeight="SemiBold"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,4,0,8">
+                                <TextBlock Text="{DynamicResource CartTotalLabel}" FontWeight="SemiBold"/>
+                                <TextBlock Text="{Binding CartTotal, StringFormat=N2}" FontWeight="SemiBold"/>
+                            </StackPanel>
+                            <Label Content="{DynamicResource LblDeliveryAddress}"/>
+                            <TextBox Text="{Binding DeliveryAddress, UpdateSourceTrigger=PropertyChanged}"/>
+                            <Label Content="{DynamicResource LblPaymentMethod}"/>
+                            <ComboBox ItemsSource="{Binding PaymentMethods}" SelectedItem="{Binding SelectedPaymentMethod, Mode=TwoWay}"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                <Button Content="{DynamicResource BtnRemoveFromCart}" Command="{Binding RemoveFromCartCommand}"/>
+                                <Button Content="{DynamicResource BtnCheckout}" Margin="10,0,0,0" Command="{Binding CheckoutCommand}" Style="{StaticResource SaveActionButtonStyle}"/>
+                            </StackPanel>
                         </StackPanel>
-                    </ScrollViewer>
-                </DockPanel>
-            </GroupBox>
-        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+        </TabControl>
     </DockPanel>
 </Window>

@@ -38,9 +38,6 @@
                 <TextBox x:Name="TbCountry" Text="{Binding DeliveryCountry, UpdateSourceTrigger=PropertyChanged}"/>
                 <Label Content="{DynamicResource LblMaker}" Target="{Binding ElementName=TbMaker}"/>
                 <TextBox x:Name="TbMaker" Text="{Binding Manufacturer, UpdateSourceTrigger=PropertyChanged}"/>
-                <Label Content="{DynamicResource LblImages}" Target="{Binding ElementName=TbImg}"/>
-                <TextBox x:Name="TbImg" Text="{Binding ImagesText, UpdateSourceTrigger=PropertyChanged}"/>
-                <Button Content="{DynamicResource BtnPickImage}" Click="OnPickImageClick"/>
                 <Label Content="{DynamicResource LblBought}" Target="{Binding ElementName=TbBought}"/>
                 <TextBox x:Name="TbBought" Text="{Binding PurchasedCount, UpdateSourceTrigger=PropertyChanged}"/>
                 <CheckBox Content="{DynamicResource LblOut}" IsChecked="{Binding IsOutOfStock, UpdateSourceTrigger=PropertyChanged}" Margin="0,8,0,0"/>

@@ -1,11 +1,11 @@
 ﻿using System.IO;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
 using Microsoft.Win32;
+using System.Windows.Input;
+using System.Windows.Media;
 using Cursor = System.Windows.Input.Cursor;
 using lab4_5.Commands;
-using lab4_5.Controls;
 using lab4_5.Models;
 using lab4_5.ViewModels;
 
@@ -13,7 +13,25 @@ namespace lab4_5;
 
 public partial class MainWindow : Window
 {
-    private bool _routingHandlersAttached;
+    public static readonly RoutedEvent ProductCardHighlightEvent = EventManager.RegisterRoutedEvent(
+        "ProductCardHighlight",
+        RoutingStrategy.Direct,
+        typeof(RoutedEventHandler),
+        typeof(MainWindow));
+
+    public static readonly RoutedEvent PreviewProductOpenEvent = EventManager.RegisterRoutedEvent(
+        "PreviewProductOpen",
+        RoutingStrategy.Tunnel,
+        typeof(RoutedEventHandler),
+        typeof(MainWindow));
+
+    public static readonly RoutedEvent AddToCartDeniedEvent = EventManager.RegisterRoutedEvent(
+        "AddToCartDenied",
+        RoutingStrategy.Bubble,
+        typeof(RoutedEventHandler),
+        typeof(MainWindow));
+
+    private Border? _highlightedCard;
 
     public MainWindow()
     {
@@ -29,96 +47,146 @@ public partial class MainWindow : Window
         var curPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "guitar.cur");
         if (File.Exists(curPath))
             Cursor = new Cursor(curPath);
-        RefreshGridColumnHeaders();
-        AttachRoutingHandlers();
+
+        AddHandler(PreviewProductOpenEvent, new RoutedEventHandler(OnPreviewProductOpen));
+        AddHandler(AddToCartDeniedEvent, new RoutedEventHandler(OnAddToCartDenied));
     }
 
     private void OnCloseExecuted(object sender, ExecutedRoutedEventArgs e) => Close();
 
     private void OnLanguageChanged()
     {
-        RefreshGridColumnHeaders();
-    }
-
-    private void RefreshGridColumnHeaders()
-    {
-        var grid = ProductsGrid;
-        if (grid is null || grid.Columns.Count < 4) return;
-
-        grid.Columns[0].Header = TryGetText("ColShort", "Название");
-        grid.Columns[1].Header = TryGetText("ColCategory", "Категория");
-        grid.Columns[2].Header = TryGetText("ColPrice", "Цена");
-        grid.Columns[3].Header = TryGetText("ColQty", "Кол-во");
-    }
-
-    private string TryGetText(string key, string fallback) =>
-        Application.Current.TryFindResource(key) as string ?? fallback;
-
-    private void AttachRoutingHandlers()
-    {
-        if (_routingHandlersAttached || RoutingHost is null)
-            return;
-        _routingHandlersAttached = true;
-
-        AddHandler(RatingStarsPicker.PreviewRatingChangingEvent, new RoutedEventHandler((s, e) => WriteRouting("Window", "Tunnel", e)), false);
-        AddHandler(RatingStarsPicker.RatingChangingEvent, new RoutedEventHandler((s, e) => WriteRouting("Window", "Bubble", e)), false);
-        AddHandler(DiscountBarControl.PreviewDiscountChangingEvent, new RoutedEventHandler((s, e) => WriteRouting("Window", "Tunnel", e)), false);
-        AddHandler(DiscountBarControl.DiscountChangingEvent, new RoutedEventHandler((s, e) => WriteRouting("Window", "Bubble", e)), false);
-
-        RoutingHost.AddHandler(RatingStarsPicker.PreviewRatingChangingEvent, new RoutedEventHandler((s, e) => WriteRouting("Host", "Tunnel", e)), false);
-        RoutingHost.AddHandler(RatingStarsPicker.RatingChangingEvent, new RoutedEventHandler((s, e) => WriteRouting("Host", "Bubble", e)), false);
-        RoutingHost.AddHandler(DiscountBarControl.PreviewDiscountChangingEvent, new RoutedEventHandler((s, e) => WriteRouting("Host", "Tunnel", e)), false);
-        RoutingHost.AddHandler(DiscountBarControl.DiscountChangingEvent, new RoutedEventHandler((s, e) => WriteRouting("Host", "Bubble", e)), false);
-    }
-
-    private void WriteRouting(string place, string strategy, RoutedEventArgs e)
-    {
-        var detail = e switch
-        {
-            ShopDoubleRoutedEventArgs a => $"rating {a.OldValue:0.#}->{a.NewValue:0.#}",
-            ShopDecimalRoutedEventArgs a => $"discount {a.OldValue:0.#}%->{a.NewValue:0.#}%",
-            _ => "event"
-        };
-
-        RoutingLogText.Text = $"{strategy} @ {place}: {detail}";
     }
 
     private void OnRoutingInfoExecuted(object sender, ExecutedRoutedEventArgs e)
     {
         MessageBox.Show(
             this,
-            TryGetText("RoutingInfoBody", "Tunnel goes top-down, Bubble bottom-up, Direct only on source control."),
-            TryGetText("RoutingInfoTitle", "Routing info"),
+            "текст вызван с помощью routed ui command.",
+            "routed UI",
             MessageBoxButton.OK,
             MessageBoxImage.Information);
     }
 
-    private void OnPickImageForSelectedProductClick(object sender, RoutedEventArgs e)
+    private void OnProductCardClick(object sender, MouseButtonEventArgs e)
     {
-        if (DataContext is not MainViewModel vm || vm.SelectedProduct is not GuitarProduct)
+        if (sender is not Border cardBorder || cardBorder.DataContext is not GuitarProduct product)
+            return;
+
+        var previewArgs = new ProductRoutedEventArgs(PreviewProductOpenEvent, cardBorder, product);
+        cardBorder.RaiseEvent(previewArgs);
+        if (previewArgs.Handled)
+            return;
+
+        cardBorder.RaiseEvent(new RoutedEventArgs(ProductCardHighlightEvent, cardBorder));
+
+        var text =
+            $"{product.FullName}\n" +
+            $"{product.Description}\n\n" +
+            $"{(Application.Current.TryFindResource("CategoryLabel") as string ?? "Category")}: {product.Category}\n" +
+            $"{(Application.Current.TryFindResource("ColPrice") as string ?? "Price")}: {product.PriceWithDiscount:N2}\n" +
+            $"{(Application.Current.TryFindResource("ColQty") as string ?? "Qty")}: {product.Quantity}\n" +
+            $"{(Application.Current.TryFindResource("LblMaker") as string ?? "Manufacturer")}: {product.Manufacturer}\n" +
+            $"{(Application.Current.TryFindResource("LblCountry") as string ?? "Delivery country")}: {product.DeliveryCountry}";
+
+        MessageBox.Show(this, text, product.ShortName, MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
+    private void OnAddImageToProductClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: GuitarProduct product })
             return;
 
         var dlg = new OpenFileDialog
         {
             Title = Application.Current.TryFindResource("PickImageTitle") as string ?? "Select image",
             Filter = "Image files (*.png;*.jpg;*.jpeg;*.webp)|*.png;*.jpg;*.jpeg;*.webp|All files (*.*)|*.*",
-            Multiselect = true
+            Multiselect = false
         };
 
-        if (dlg.ShowDialog(this) != true || dlg.FileNames.Length == 0)
+        if (dlg.ShowDialog(this) != true || string.IsNullOrWhiteSpace(dlg.FileName))
             return;
 
-        TbImagesMain.Text = AppendPaths(TbImagesMain.Text, dlg.FileNames);
+        var paths = product.ImagePaths.ToList();
+        paths.Add(dlg.FileName);
+        product.ImagePaths = paths.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
     }
 
-    private static string AppendPaths(string current, IEnumerable<string> filePaths)
+    private void OnProductCardLoaded(object sender, RoutedEventArgs e)
     {
-        var merged = current
-            .Split(new[] { ';', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Concat(filePaths)
-            .Where(path => !string.IsNullOrWhiteSpace(path))
-            .Distinct(StringComparer.OrdinalIgnoreCase);
+        if (sender is not Border cardBorder)
+            return;
 
-        return string.Join(";", merged);
+        cardBorder.AddHandler(ProductCardHighlightEvent, new RoutedEventHandler(OnProductCardHighlight));
+    }
+
+    private void OnProductCardHighlight(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Border cardBorder)
+            return;
+
+        _highlightedCard?.ClearValue(BackgroundProperty);
+        cardBorder.Background = new SolidColorBrush(Color.FromRgb(198, 239, 206));
+        _highlightedCard = cardBorder;
+    }   
+
+    private void OnAddToCartClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: GuitarProduct product } button || DataContext is not MainViewModel vm)
+            return;
+
+        var alreadyInCart = vm.CartItems
+            .Where(x => x.Product.Id == product.Id)
+            .Select(x => x.Quantity)
+            .FirstOrDefault();
+
+        if (alreadyInCart >= product.Quantity)
+        {
+            button.RaiseEvent(new ProductRoutedEventArgs(AddToCartDeniedEvent, button, product));
+            return;
+        }
+
+        vm.AddToCartCommand.Execute(product);
+    }
+
+    private void OnAddToCartDenied(object sender, RoutedEventArgs e)
+    {
+        if (e is not ProductRoutedEventArgs args || args.Product is null)
+            return;
+
+        MessageBox.Show(
+            this,
+            $"Нельзя добавить в корзину больше, чем есть на складе.\nТовар: {args.Product.ShortName}",
+            "Bubbling event",
+            MessageBoxButton.OK,
+            MessageBoxImage.Warning);
+    }
+
+    private void OnPreviewProductOpen(object sender, RoutedEventArgs e)
+    {
+        if (e is not ProductRoutedEventArgs args || args.Product is null)
+            return;
+
+        if (args.Product.Quantity > 0)
+            return;
+
+        MessageBox.Show(
+            this,
+            $"Tunneling event: карточка не открывается, потому что товара нет в наличии.\nТовар: {args.Product.ShortName}",
+            "Tunneling event",
+            MessageBoxButton.OK,
+            MessageBoxImage.Information);
+        args.Handled = true;
+    }
+
+    private sealed class ProductRoutedEventArgs : RoutedEventArgs
+    {
+        public GuitarProduct? Product { get; }
+
+        public ProductRoutedEventArgs(RoutedEvent routedEvent, object source, GuitarProduct? product)
+            : base(routedEvent, source)
+        {
+            Product = product;
+        }
     }
 }
